@@ -103,17 +103,17 @@ struct
   allow us to manage it later), and the listener itself. The listener
   is an event handler, or a function that will execute when the event
   is "fired". *)
-  type 'a waiter = {id : id; action : 'a -> unit}
+  type 'a waiter = {id : id; action : 'a -> unit} 
   type 'a event = 'a waiter list ref
 
   (* New IDs should be unique ints; we'll increment from 0. *)
-  let id_counter = ref 0
+  let id_counter = ref 0 ;;
 
   let new_id () : id =
     let i = !id_counter in
-    incr id_counter; i
+    incr id_counter; i ;;
 
-  let new_event () : 'a event = ref []
+  let new_event () : 'a event = ref [];;
 
 (*......................................................................
 Exercise 1: Write add_listener, which adds a listener to an
@@ -123,8 +123,8 @@ decide how to implement this.
 
   let add_listener (evt : 'a event) (listener : 'a -> unit) : id =
     let id = new_id () in
-    evt := {id:id ; action:listener} :: !evt ; id ;;
-
+    evt := {id ; action = listener} :: !evt ; id
+;;
 (*......................................................................
 Exercise 2: Write remove_listener, which, given an id and an event,
 unregisters the listener with that id from the event if there is
@@ -132,16 +132,16 @@ one. If there is no listener with that id, do nothing.
 ......................................................................*)
 
   let remove_listener (evt : 'a event) (i : id) : unit =
-    evt := List.filter (fun {id1; listener1} -> id1 != id) !evt ;;
-
+    evt := List.filter (fun {id;_} -> id != i) !evt;
+;;
 (*......................................................................
 Exercise 3: Write fire_event, which will execute all event handlers
 listening for the event.
 ......................................................................*)
 
   let fire_event (evt : 'a event) (arg : 'a) : unit =
-    List.map (fun {id1; listener1} -> listener1 arg) !evt ;;
-
+    List.iter (fun {id; action} -> action arg) !evt 
+;;
 end
 
 (*====================================================================
@@ -157,7 +157,7 @@ Exercise 4: Given your implementation of Event, create a new event
 called "newswire" that should pass strings to the event handlers.
 ......................................................................*)
 
-let newswire : string waiter list ref = WEvent.new_event () ;;
+let newswire : string WEvent.event = WEvent.new_event () ;;
 
 (* News organizations might want to register event listeners to the
 newswire so that they might report on stories. Below are functions
@@ -177,7 +177,7 @@ newswire event.
 
 (* .. *)
 let id1 = WEvent.add_listener newswire fakeNewsNetwork ;;
-let id2 = add_listener newswire buzzFake ;;
+let id2 = WEvent.add_listener newswire buzzFake ;;
 (* Here are some headlines to play with. *)
 
 let h1 = "the national animal of Eritrea is officially the camel!" ;;
@@ -190,9 +190,9 @@ headlines, and observe what happens!
 ......................................................................*)
 
 (* .. *)
-let _ = WEvent.fire_event newsire h1 ;;
-let _ = WEvent.fire_event newsire h2 ;;
-let _ = WEvent.fire_event newsire h3 ;;
+let _ = WEvent.fire_event newswire h1 ;;
+let _ = WEvent.fire_event newswire h2 ;;
+let _ = WEvent.fire_event newswire h3 ;;
 
 (* Imagine now that you work at Facebook, and you're growing concerned
 with the proliferation of fake news. To combat the problem, you decide
@@ -214,7 +214,7 @@ Exercise 8: Create a new event called publish to signal that all
 stories should be published. The event should be a unit WEvent.event.
 ......................................................................*)
 
-let publish : unit waiter list ref = WEvent.new_event () ;;
+let publish : unit WEvent.event = WEvent.new_event () ;;
 
 (*......................................................................
 Exercise 9: Write a function receive_report to handle new news
@@ -226,8 +226,9 @@ waiting for the publish event.
 ......................................................................*)
 
 let receive_report (s : string) : unit =
-  WEvent.add_listener publish (() -> fakeNewsNetwork s) ;
-  WEvent.add_listener publish (() -> buzzFake s) ;;
+  let _ = WEvent.add_listener publish (fun () -> fakeNewsNetwork s) in
+  let _ = WEvent.add_listener publish (fun () -> buzzFake s) in 
+  () ;;
 (*......................................................................
 Exercise 10: Register the receieve_report listener to listen for the
 newswire event.
